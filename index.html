@@ -702,7 +702,7 @@
     <div style="font-size:32px;margin-bottom:14px;text-align:center;">🔑</div>
     <h3 style="font-size:20px;margin-bottom:8px;text-align:center;">Connect Gemini API</h3>
     <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;text-align:center;">Get a free key at <strong style="color:var(--primary2);">aistudio.google.com</strong>. Stored only in your browser.</p>
-    <input class="input" id="api-in" placeholder="Paste your API key..." style="margin-bottom:14px;">
+    <input class="input" id="api-in" type="password" placeholder="Paste your API key..." style="margin-bottom:14px;">
     <button class="btn btn-primary btn-block" onclick="saveKey()">Save & Continue</button>
   </div>
 </div>
@@ -1006,7 +1006,7 @@ Respond warmly and concisely (under 80 words). Reference their exam when relevan
       <div class="call-ico" style="background:rgba(109,138,255,0.12);color:var(--primary2);">♥</div>
       <div><div class="call-name">${escapeHTML(c.name)}</div><div class="call-meta">Trusted contact</div></div>
       <a href="tel:${encodeURIComponent(c.phone)}" class="call-num" style="color:var(--primary2);text-decoration:none;" aria-label="Call ${escapeHTML(c.name)}">Call</a>
-      <span class="contact-del" role="button" tabindex="0" onclick="delContact(${i})" title="Remove">×</span>
+      <span class="contact-del" role="button" tabindex="0" onclick="delContact(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();delContact(${i});}" aria-label="Remove ${escapeHTML(c.name)}" title="Remove">×</span>
     </div>`).join('');
   }
   function addContact(){

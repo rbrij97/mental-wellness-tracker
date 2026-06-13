@@ -26,10 +26,18 @@ function isValidPhone(phone){
 function computeStreak(isoDates){
   if(!isoDates || !isoDates.length) return 0;
   const days = [...new Set(isoDates.map(d => d.split('T')[0]))].sort().reverse();
+
+  // Verify if the streak is active. The most recent check-in (days[0]) must be today or yesterday in UTC.
+  const todayStr = new Date().toISOString().split('T')[0];
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  if (days[0] !== todayStr && days[0] !== yesterdayStr) {
+    return 0;
+  }
+
   let streak = 1;
   for(let i = 1; i < days.length; i++){
     const diff = (new Date(days[i-1]) - new Date(days[i])) / 86400000;
-    if(diff === 1) streak++; else break;
+    if(Math.round(diff) === 1) streak++; else break;
   }
   return streak;
 }

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tyro — Unit Tests</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,sans-serif;}
+    body{background:#0f0f14;color:#e0e0e6;min-height:100vh;padding:40px 20px;}
+    .wrap{max-width:720px;margin:0 auto;}
+    h1{font-size:28px;font-weight:700;margin-bottom:4px;background:linear-gradient(135deg,#6d8aff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .sub{font-size:13px;color:#888;margin-bottom:32px;}
+    .summary{display:flex;gap:16px;margin-bottom:32px;flex-wrap:wrap;}
+    .stat{flex:1;min-width:120px;background:#1a1a24;border:1px solid #2a2a3a;border-radius:14px;padding:20px;text-align:center;}
+    .stat .num{font-size:32px;font-weight:700;}
+    .stat .label{font-size:12px;color:#888;margin-top:4px;}
+    .stat.pass .num{color:#34d399;}
+    .stat.fail .num{color:#f87171;}
+    .stat.total .num{color:#a78bfa;}
+    .stat.time .num{color:#facc15;font-size:22px;}
+    .group{margin-bottom:24px;}
+    .group-head{font-size:15px;font-weight:600;color:#a78bfa;padding:10px 0;border-bottom:1px solid #2a2a3a;margin-bottom:8px;}
+    .test{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;transition:background .15s;}
+    .test:hover{background:#1a1a24;}
+    .ico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700;}
+    .ico.pass{background:rgba(52,211,153,.15);color:#34d399;}
+    .ico.fail{background:rgba(248,113,113,.15);color:#f87171;}
+    .name{flex:1;color:#c8c8d0;}
+    .detail{font-size:11px;color:#f87171;margin-left:30px;padding:4px 12px 8px;}
+    .all-pass{margin-top:24px;text-align:center;font-size:15px;color:#34d399;font-weight:600;}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tyro — Unit Tests</h1>
+  <p class="sub">Automated tests for <code>logic.js</code></p>
+  <div class="summary" id="summary"></div>
+  <div id="results"></div>
+</div>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  const results = [];
+  let currentGroup = '';
+
+  function assert(condition, name, detail) {
+    results.push({ group: currentGroup, name, pass: !!condition, detail: condition ? null : (detail||'assertion failed') });
+  }
+  function assertEq(actual, expected, name) {
+    const ok = actual === expected;
+    assert(ok, name, ok ? null : `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  }
+  function group(name) { currentGroup = name; }
+  function daysAgo(n) { return new Date(Date.now() - n * 86400000).toISOString(); }
+
+  const t0 = performance.now();
+
+  // ── escapeHTML ──
+  group('escapeHTML');
+  assertEq(escapeHTML('<script>alert("xss")</script>'), '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;', 'Escapes HTML tags and quotes');
+  assertEq(escapeHTML("it's a test"), "it&#39;s a test", 'Escapes single quotes');
+  assertEq(escapeHTML('a & b < c > d'), 'a &amp; b &lt; c &gt; d', 'Escapes &, <, >');
+  assertEq(escapeHTML(''), '', 'Empty string unchanged');
+  assertEq(escapeHTML(null), '', 'Null returns empty string');
+  assertEq(escapeHTML(undefined), '', 'Undefined returns empty string');
+  assertEq(escapeHTML('Hello World'), 'Hello World', 'Safe string unchanged');
+  assertEq(escapeHTML(12345), '12345', 'Coerces number to string');
+  assertEq(escapeHTML('<b>"Bold" & \'italic\'</b>'), '&lt;b&gt;&quot;Bold&quot; &amp; &#39;italic&#39;&lt;/b&gt;', 'Mixed special characters');
+
+  // ── isValidPhone ──
+  group('isValidPhone');
+  assert(isValidPhone('9152987821') === true, 'Valid 10-digit Indian number');
+  assert(isValidPhone('+91 91529 87821') === true, 'Valid with country code & spaces');
+  assert(isValidPhone('+1-800-555-0199') === true, 'Valid international with dashes');
+  assert(isValidPhone('14416') === false, 'Rejects too-short number');
+  assert(isValidPhone('') === false, 'Rejects empty string');
+  assert(isValidPhone(null) === false, 'Rejects null');
+  assert(isValidPhone('abcdefghij') === false, 'Rejects alphabetic string');
+  assert(isValidPhone('123') === false, 'Rejects 3-digit string');
+  assert(isValidPhone('+91 123 456 7890') === true, 'Valid with plus and spaces');
+  assert(isValidPhone('1860-2662-2345') === true, 'Valid with dashes');
+  assert(isValidPhone('12345 67890') === true, 'Valid with space separator');
+
+  // ── computeStreak ──
+  group('computeStreak');
+  assertEq(computeStreak([]), 0, 'Empty array → 0');
+  assertEq(computeStreak(null), 0, 'Null → 0');
+  assertEq(computeStreak(undefined), 0, 'Undefined → 0');
+  assertEq(computeStreak([daysAgo(0)]), 1, 'Single entry today → 1');
+  assertEq(computeStreak([daysAgo(1)]), 1, 'Single entry yesterday → 1');
+  assertEq(computeStreak([daysAgo(2), daysAgo(1), daysAgo(0)]), 3, '3 consecutive days → 3');
+  assertEq(computeStreak([daysAgo(3), daysAgo(2), daysAgo(1), daysAgo(0)]), 4, '4 consecutive days → 4');
+  assertEq(computeStreak([daysAgo(5), daysAgo(3), daysAgo(2), daysAgo(1), daysAgo(0)]), 4, 'Gap before run → counts recent run only');
+  assertEq(computeStreak([daysAgo(1), daysAgo(1), daysAgo(0), daysAgo(0)]), 2, 'Duplicate dates counted once');
+  assertEq(computeStreak([daysAgo(10), daysAgo(9), daysAgo(8)]), 0, 'Old entries with no recent activity → 0');
+  assertEq(computeStreak([daysAgo(30)]), 0, 'Single old entry → 0');
+
+  // ── averageMood ──
+  group('averageMood');
+  assertEq(averageMood([]), null, 'Empty → null');
+  assertEq(averageMood(null), null, 'Null → null');
+  assertEq(averageMood(undefined), null, 'Undefined → null');
+  assertEq(averageMood([{mood:5}]), 5.0, 'Single mood 5 → 5.0');
+  assertEq(averageMood([{mood:1},{mood:2},{mood:3}]), 2.0, 'Avg of 1,2,3 → 2.0');
+  assertEq(averageMood([{mood:3},{mood:4},{mood:5}]), 4.0, 'Avg of 3,4,5 → 4.0');
+  assertEq(averageMood([{mood:1},{mood:5}]), 3.0, 'Avg of 1,5 → 3.0');
+  assertEq(averageMood([{mood:1},{mood:1},{mood:1},{mood:1},{mood:1}]), 1.0, 'All 1s → 1.0');
+  assertEq(averageMood([{mood:2},{mood:3}]), 2.5, 'Avg of 2,3 → 2.5');
+  assertEq(averageMood([{mood:1},{mood:2},{mood:4}]), 2.3, 'Avg of 1,2,4 → 2.3');
+
+  // ── detectPattern ──
+  group('detectPattern');
+  assertEq(detectPattern([]), null, 'Empty → null');
+  assertEq(detectPattern(null), null, 'Null → null');
+  assertEq(detectPattern(undefined), null, 'Undefined → null');
+  assertEq(detectPattern([{mood:3,stress:1},{mood:4,stress:1}]), null, 'Fewer than 3 entries → null');
+
+  {
+    const r = detectPattern([{mood:1,stress:1,feeling:'worried'},{mood:2,stress:1,feeling:'worried'},{mood:1,stress:1,feeling:'worried'},{mood:2,stress:1,feeling:'worried'}]);
+    assert(r !== null && r.toLowerCase().includes('low mood'), 'Detects low mood pattern');
+  }
+  {
+    const r = detectPattern([{mood:3,stress:1,feeling:'numb'},{mood:3,stress:1,feeling:'numb'},{mood:3,stress:1,feeling:'focused'}]);
+    assert(r !== null && r.toLowerCase().includes('numb'), 'Detects numb / emotional exhaustion');
+  }
+  {
+    const r = detectPattern([{mood:3,stress:3,feeling:'focused'},{mood:3,stress:3,feeling:'focused'},{mood:3,stress:3,feeling:'focused'},{mood:3,stress:3,feeling:'focused'}]);
+    assert(r !== null && r.toLowerCase().includes('stress'), 'Detects high stress pattern');
+  }
+  {
+    const r = detectPattern([{mood:3,stress:1,feeling:'racing'},{mood:3,stress:1,feeling:'racing'},{mood:3,stress:1,feeling:'focused'}]);
+    assert(r !== null && r.toLowerCase().includes('racing'), 'Detects racing mind pattern');
+  }
+  {
+    const r = detectPattern([{mood:4,stress:1,feeling:'focused'},{mood:5,stress:1,feeling:'hopeful'},{mood:4,stress:1,feeling:'focused'},{mood:5,stress:1,feeling:'hopeful'}]);
+    assertEq(r, null, 'No pattern when everything is calm');
+  }
+  {
+    const r = detectPattern([
+      {mood:1,stress:3,feeling:'numb'},{mood:1,stress:3,feeling:'numb'},{mood:1,stress:3,feeling:'numb'},
+      {mood:4,stress:1,feeling:'focused'},{mood:5,stress:1,feeling:'hopeful'},
+      {mood:4,stress:1,feeling:'focused'},{mood:5,stress:1,feeling:'hopeful'},{mood:4,stress:1,feeling:'focused'}
+    ]);
+    assertEq(r, null, 'Only considers last 5 entries');
+  }
+
+  const elapsed = (performance.now() - t0).toFixed(1);
+
+  // ── Render ──
+  const passCount = results.filter(r => r.pass).length;
+  const failCount = results.filter(r => !r.pass).length;
+
+  document.getElementById('summary').innerHTML = `
+    <div class="stat total"><div class="num">${results.length}</div><div class="label">Total</div></div>
+    <div class="stat pass"><div class="num">${passCount}</div><div class="label">Passed</div></div>
+    <div class="stat fail"><div class="num">${failCount}</div><div class="label">Failed</div></div>
+    <div class="stat time"><div class="num">${elapsed} ms</div><div class="label">Elapsed</div></div>
+  `;
+
+  const groups = [];
+  let cur = null;
+  results.forEach(r => {
+    if (!cur || cur.name !== r.group) { cur = { name: r.group, tests: [] }; groups.push(cur); }
+    cur.tests.push(r);
+  });
+
+  const container = document.getElementById('results');
+  groups.forEach(g => {
+    const gp = g.tests.filter(t => t.pass).length;
+    let html = `<div class="group"><div class="group-head">${g.name} <span style="float:right;font-size:12px;color:#888;">${gp}/${g.tests.length}</span></div>`;
+    g.tests.forEach(t => {
+      html += `<div class="test"><div class="ico ${t.pass?'pass':'fail'}">${t.pass?'✓':'✗'}</div><div class="name">${t.name}</div></div>`;
+      if (!t.pass && t.detail) html += `<div class="detail">${t.detail}</div>`;
+    });
+    html += '</div>';
+    container.innerHTML += html;
+  });
+
+  if (failCount === 0) container.innerHTML += '<div class="all-pass">All tests passed ✓</div>';
+})();
+</script>
+</body>
+</html>

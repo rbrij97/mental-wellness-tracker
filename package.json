@@ -1,0 +1,11 @@
+{
+  "name": "mental-wellness-tracker",
+  "version": "1.0.0",
+  "description": "MindMate / Tyro — AI-powered mental wellness companion for exam students",
+  "main": "index.html",
+  "scripts": {
+    "test": "node logic.test.js"
+  },
+  "keywords": ["mental-health", "wellness", "student", "gemini"],
+  "license": "MIT"
+}
