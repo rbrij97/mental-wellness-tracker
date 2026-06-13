@@ -68,6 +68,11 @@
   assertEq(escapeHTML('Hello World'), 'Hello World', 'Safe string unchanged');
   assertEq(escapeHTML(12345), '12345', 'Coerces number to string');
   assertEq(escapeHTML('<b>"Bold" & \'italic\'</b>'), '&lt;b&gt;&quot;Bold&quot; &amp; &#39;italic&#39;&lt;/b&gt;', 'Mixed special characters');
+  assertEq(escapeHTML(true), 'true', 'coerces boolean true to string');
+  assertEq(escapeHTML(false), 'false', 'coerces boolean false to string');
+  assertEq(escapeHTML({}), '[object Object]', 'coerces empty object and escapes safely');
+  assertEq(escapeHTML('a & b & c < d > e'), 'a &amp; b &amp; c &lt; d &gt; e', 'escapes multiple occurrences of special chars');
+  assertEq(escapeHTML('`hello`'), '`hello`', 'ignores backticks');
 
   // ── isValidPhone ──
   group('isValidPhone');
@@ -82,6 +87,11 @@
   assert(isValidPhone('+91 123 456 7890') === true, 'Valid with plus and spaces');
   assert(isValidPhone('1860-2662-2345') === true, 'Valid with dashes');
   assert(isValidPhone('12345 67890') === true, 'Valid with space separator');
+  assert(isValidPhone(9152987821) === true, 'Valid number type input');
+  assert(isValidPhone('+91 98765@43210') === false, 'Rejects invalid symbol @ in middle');
+  assert(isValidPhone('+91+9876543210') === false, 'Rejects multiple plus signs');
+  assert(isValidPhone('+123') === false, 'Rejects too-short number with plus');
+  assert(isValidPhone('+91 12345 67890 12345') === true, 'Valid long international number');
 
   // ── computeStreak ──
   group('computeStreak');
@@ -96,6 +106,10 @@
   assertEq(computeStreak([daysAgo(1), daysAgo(1), daysAgo(0), daysAgo(0)]), 2, 'Duplicate dates counted once');
   assertEq(computeStreak([daysAgo(10), daysAgo(9), daysAgo(8)]), 0, 'Old entries with no recent activity → 0');
   assertEq(computeStreak([daysAgo(30)]), 0, 'Single old entry → 0');
+  assertEq(computeStreak([daysAgo(0), daysAgo(2), daysAgo(1)]), 3, 'Unordered days still computes correct streak');
+  assertEq(computeStreak([daysAgo(-1), daysAgo(0), daysAgo(1)]), 0, 'Clock skew (future date) breaks/invalidates streak');
+  assertEq(computeStreak([daysAgo(0), daysAgo(1), daysAgo(3), daysAgo(4), daysAgo(6)]), 2, 'Multiple gaps - returns the length of the most recent active streak');
+  assertEq(computeStreak(['2026-06-13T23:59:59Z', '2026-06-14T00:00:01Z']), 2, 'Handles consecutive days crossing timezone/midnight boundaries');
 
   // ── averageMood ──
   group('averageMood');
@@ -109,6 +123,8 @@
   assertEq(averageMood([{mood:1},{mood:1},{mood:1},{mood:1},{mood:1}]), 1.0, 'All 1s → 1.0');
   assertEq(averageMood([{mood:2},{mood:3}]), 2.5, 'Avg of 2,3 → 2.5');
   assertEq(averageMood([{mood:1},{mood:2},{mood:4}]), 2.3, 'Avg of 1,2,4 → 2.3');
+  assertEq(averageMood([{mood:3}, {mood:null}, {mood:undefined}, {}, {mood:5}]), 4.0, 'Ignores entries missing mood or with non-numeric mood values');
+  assertEq(averageMood([{mood:'5'}, {mood:2}]), 2.0, 'Filters out mood string values');
 
   // ── detectPattern ──
   group('detectPattern');
@@ -144,6 +160,19 @@
       {mood:4,stress:1,feeling:'focused'},{mood:5,stress:1,feeling:'hopeful'},{mood:4,stress:1,feeling:'focused'}
     ]);
     assertEq(r, null, 'Only considers last 5 entries');
+  }
+
+  {
+    const r = detectPattern([{mood:1,stress:3,feeling:'numb'},{mood:1,stress:3,feeling:'numb'},{mood:1,stress:3,feeling:'focused'}]);
+    assert(r !== null && r.toLowerCase().includes('blank or numb'), 'Numb pattern takes priority over low mood');
+  }
+  {
+    const r = detectPattern([{mood:1,stress:4,feeling:'focused'},{mood:1,stress:4,feeling:'focused'},{mood:1,stress:4,feeling:'focused'},{mood:3,stress:4,feeling:'focused'}]);
+    assert(r !== null && r.toLowerCase().includes('low mood'), 'Low mood pattern takes priority over high stress');
+  }
+  {
+    const r = detectPattern([{mood:1},{stress:4},{feeling:'racing'}]);
+    assertEq(r, null, 'Returns null gracefully when entries are missing vital fields');
   }
 
   const elapsed = (performance.now() - t0).toFixed(1);

@@ -6,22 +6,30 @@
  * file before its main script and calls these globals directly.
  */
 
-/** Escape a string for safe insertion into innerHTML (prevents XSS). */
+/**
+ * Escape a string for safe insertion into innerHTML (prevents XSS).
+ * @param {any} str - The string or object to escape.
+ * @returns {string} The HTML-escaped string.
+ */
 function escapeHTML(str){
   return String(str ?? '').replace(/[&<>"']/g, c => (
     {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
   ));
 }
 
-/** Validate a human-entered phone number (digits, spaces, dashes, optional +). */
+/**
+ * Validate a human-entered phone number (digits, spaces, dashes, optional +).
+ * @param {any} phone - The phone number to validate.
+ * @returns {boolean} True if the phone number is valid, false otherwise.
+ */
 function isValidPhone(phone){
   return /^[+\d][\d\s-]{5,}$/.test(String(phone || '').trim());
 }
 
 /**
- * Longest run of consecutive calendar days ending today/most-recent.
+ * Longest run of consecutive calendar days ending today or yesterday.
  * @param {string[]} isoDates - ISO date strings (one or more per day).
- * @returns {number}
+ * @returns {number} The active streak in days.
  */
 function computeStreak(isoDates){
   if(!isoDates || !isoDates.length) return 0;
@@ -42,16 +50,29 @@ function computeStreak(isoDates){
   return streak;
 }
 
-/** Average mood (1–5) across entries, rounded to 1 decimal. null if empty. */
+/**
+ * Average mood (1–5) across entries, rounded to 1 decimal.
+ * Filters out entries with invalid, null, or missing mood properties.
+ * @param {object[]} entries - Array of check-in entries.
+ * @param {number} [entries[].mood] - The mood rating (1-5).
+ * @returns {number|null} The average mood rating, or null if no valid entries are present.
+ */
 function averageMood(entries){
   if(!entries || !entries.length) return null;
-  return +(entries.reduce((s, e) => s + e.mood, 0) / entries.length).toFixed(1);
+  const valid = entries.filter(e => e && typeof e.mood === 'number' && !isNaN(e.mood));
+  if(!valid.length) return null;
+  return +(valid.reduce((s, e) => s + e.mood, 0) / valid.length).toFixed(1);
 }
 
 /**
  * Detect a hidden emotional pattern from the last few check-ins.
  * Returns a supportive message string, or null if nothing notable.
  * Mirrors the "uncovering hidden stress patterns" goal of the brief.
+ * @param {object[]} entries - Array of check-in entries.
+ * @param {number} [entries[].mood] - The mood rating (1-5).
+ * @param {string} [entries[].feeling] - The feeling label.
+ * @param {number} [entries[].stress] - The stress level (1-5).
+ * @returns {string|null} The detected pattern advice message, or null if none.
  */
 function detectPattern(entries){
   if(!entries || entries.length < 3) return null;

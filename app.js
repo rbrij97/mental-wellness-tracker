@@ -6,13 +6,15 @@
  */
 
 // ── Config ──
-// No API key is bundled with the app — each user supplies their own free Gemini
-// key, which is stored only in their browser's localStorage and never committed.
-// Default key assembled at runtime to avoid secret-scanner false positives.
-const _dp = ['AQ.Ab8RN6Ka','rAC1_84o6YA_','-XjN8u5eo5_r','_AacBZNaJmt','_46d6_Q'];
-let API_KEY = localStorage.getItem('mindmate_api_key') || _dp.join('');
+// No API key is bundled — each user supplies their own free Gemini key via the
+// in-app modal. It is stored only in their browser's localStorage and is never
+// committed to the repository.
+let API_KEY = localStorage.getItem('mindmate_api_key') || '';
 
-/** Build the Gemini API endpoint URL with the user's key. */
+/**
+ * Build the Gemini API endpoint URL with the user's key.
+ * @returns {string} The formatted Gemini API endpoint URL.
+ */
 function geminiURL() {
   return `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(API_KEY)}`;
 }
@@ -20,24 +22,37 @@ function geminiURL() {
 // ── Helpers ──
 // escapeHTML, detectPattern, computeStreak, averageMood, isValidPhone live in logic.js
 
-/** Read user profile from localStorage. */
+/**
+ * Read user profile from localStorage.
+ * @returns {object} The parsed user profile object.
+ */
 function getProfile() {
   return JSON.parse(localStorage.getItem('mindmate_profile') || '{}');
 }
 
-/** Read all check-in entries from localStorage. */
+/**
+ * Read all check-in entries from localStorage.
+ * @returns {object[]} Array of check-in entries.
+ */
 function getEntries() {
   return JSON.parse(localStorage.getItem('mindmate_entries') || '[]');
 }
 
-/** Persist a new check-in entry to localStorage. */
+/**
+ * Persist a new check-in entry to localStorage.
+ * @param {object} entry - The check-in entry object to save.
+ * @returns {void}
+ */
 function saveEntry(entry) {
   const all = getEntries();
   all.push(entry);
   localStorage.setItem('mindmate_entries', JSON.stringify(all));
 }
 
-/** Read trusted contacts from localStorage. */
+/**
+ * Read trusted contacts from localStorage.
+ * @returns {object[]} Array of saved contact objects.
+ */
 function getContacts() {
   return JSON.parse(localStorage.getItem('mindmate_contacts') || '[]');
 }
@@ -56,7 +71,10 @@ if (profile) {
   boot();
 }
 
-/** Initialize the main app after onboarding is complete. */
+/**
+ * Initialize the main app after onboarding is complete.
+ * @returns {void}
+ */
 function boot() {
   document.getElementById('onboard').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
@@ -75,7 +93,13 @@ function boot() {
   nav('home');
 }
 
-/** Display a time-appropriate greeting on the home page. */
+/**
+ * Display a time-appropriate greeting on the home page.
+ * @param {object} p - The user profile.
+ * @param {string} [p.name] - The name of the user.
+ * @param {string} [p.exam] - The exam name.
+ * @returns {void}
+ */
 function setGreeting(p) {
   const h = new Date().getHours();
   const eyebrow = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
@@ -88,7 +112,11 @@ function setGreeting(p) {
 // Navigation
 // ──────────────────────────────────────────
 
-/** Switch visible page and update active nav indicators. */
+/**
+ * Switch visible page and update active nav indicators.
+ * @param {string} page - The name of the page/view to display.
+ * @returns {void}
+ */
 function nav(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.add('hidden'));
   document.getElementById('page-' + page).classList.remove('hidden');
@@ -110,14 +138,22 @@ function nav(page) {
 // Onboarding
 // ──────────────────────────────────────────
 
-/** Select an exam chip during onboarding. */
+/**
+ * Select an exam chip during onboarding.
+ * @param {HTMLElement} el - The clicked chip element.
+ * @param {string} exam - The selected exam type.
+ * @returns {void}
+ */
 function selExam(el, exam) {
   document.querySelectorAll('.exam-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   selExamVal = exam;
 }
 
-/** Complete onboarding: validate inputs, save profile, and boot the app. */
+/**
+ * Complete onboarding: validate inputs, save profile, and boot the app.
+ * @returns {void}
+ */
 function completeOnboard() {
   const name = document.getElementById('ob-name').value.trim();
   if (!name) return alert('Please enter your name');
@@ -130,7 +166,10 @@ function completeOnboard() {
 // Check-in
 // ──────────────────────────────────────────
 
-/** Reset the check-in form to its initial state. */
+/**
+ * Reset the check-in form to its initial state.
+ * @returns {void}
+ */
 function resetCheckin() {
   selMoodVal = null;
   selFeelVal = null;
@@ -142,14 +181,22 @@ function resetCheckin() {
   goStep(1);
 }
 
-/** Render the step progress bar for the check-in wizard. */
+/**
+ * Render the step progress bar for the check-in wizard.
+ * @param {number} active - The active step index (1-3).
+ * @returns {void}
+ */
 function renderStepBar(active) {
   document.getElementById('step-bar').innerHTML = [1, 2, 3]
     .map(i => `<div class="step-seg ${i <= active ? 'on' : ''}"></div>`)
     .join('');
 }
 
-/** Navigate to a specific step in the check-in wizard. */
+/**
+ * Navigate to a specific step in the check-in wizard.
+ * @param {number} n - The target step number.
+ * @returns {void}
+ */
 function goStep(n) {
   document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
   document.getElementById('step-' + n).classList.add('active');
@@ -158,7 +205,12 @@ function goStep(n) {
   window.scrollTo(0, 0);
 }
 
-/** Select a mood value during check-in step 1. */
+/**
+ * Select a mood value during check-in step 1.
+ * @param {number} v - The selected mood rating (1-5).
+ * @param {HTMLElement} el - The clicked mood option element.
+ * @returns {void}
+ */
 function selMood(v, el) {
   selMoodVal = v;
   document.querySelectorAll('.mood-opt').forEach(e => e.classList.remove('selected'));
@@ -166,7 +218,13 @@ function selMood(v, el) {
   document.getElementById('s1-next').disabled = false;
 }
 
-/** Select a feeling label and stress level during check-in step 2. */
+/**
+ * Select a feeling label and stress level during check-in step 2.
+ * @param {string} label - The feeling label.
+ * @param {number} stress - The stress level rating (1-5).
+ * @param {HTMLElement} el - The clicked feeling option element.
+ * @returns {void}
+ */
 function selFeel(label, stress, el) {
   selFeelVal = label;
   selStressVal = stress;
@@ -175,7 +233,10 @@ function selFeel(label, stress, el) {
   document.getElementById('s2-next').disabled = false;
 }
 
-/** Submit the check-in, call Gemini for analysis, and display results. */
+/**
+ * Submit the check-in, call Gemini for analysis, and display results.
+ * @returns {Promise<void>}
+ */
 async function submitCheckin() {
   const btn = document.getElementById('s3-next');
   btn.textContent = 'Analyzing...';
@@ -257,7 +318,10 @@ Be human, warm, concise. No bullet points. 1-2 emojis. Under 90 words.`;
 // Feedback
 // ──────────────────────────────────────────
 
-/** Check if yesterday's entry needs feedback and show the prompt. */
+/**
+ * Check if yesterday's entry needs feedback and show the prompt.
+ * @returns {void}
+ */
 function checkFeedback() {
   const entries = getEntries();
   if (!entries.length) return;
@@ -270,7 +334,11 @@ function checkFeedback() {
   }
 }
 
-/** Record whether yesterday's advice helped. */
+/**
+ * Record whether yesterday's advice helped.
+ * @param {boolean} helped - True if the advice was helpful, false otherwise.
+ * @returns {void}
+ */
 function logFeedback(helped) {
   const entries = getEntries();
   if (entries.length) {
@@ -285,7 +353,10 @@ function logFeedback(helped) {
 // Stats
 // ──────────────────────────────────────────
 
-/** Update the stats cards on the home page. */
+/**
+ * Update the stats cards on the home page.
+ * @returns {void}
+ */
 function updateStats() {
   const entries = getEntries();
   document.getElementById('stat-checkins').textContent = entries.length;
@@ -300,7 +371,10 @@ function updateStats() {
   document.getElementById('stat-mood').textContent = averageMood(entries);
 }
 
-/** Render the AI summary and pattern detection on the home page. */
+/**
+ * Render the AI summary and pattern detection on the home page.
+ * @returns {void}
+ */
 function renderHomeAI() {
   const entries = getEntries();
   if (!entries.length) return;
@@ -324,7 +398,10 @@ function renderHomeAI() {
 // Insights
 // ──────────────────────────────────────────
 
-/** Render the full insights page with mood trend, patterns, and stats. */
+/**
+ * Render the full insights page with mood trend, patterns, and stats.
+ * @returns {void}
+ */
 function renderInsights() {
   const entries = getEntries();
   const wrap = document.getElementById('insights-body');
@@ -374,13 +451,22 @@ function renderInsights() {
 // Chat
 // ──────────────────────────────────────────
 
-/** Initialize the chat greeting with the user's name and exam. */
+/**
+ * Initialize the chat greeting with the user's name and exam.
+ * @param {object} p - The user profile.
+ * @param {string} [p.name] - The name of the user.
+ * @param {string} [p.exam] - The exam name.
+ * @returns {void}
+ */
 function initChat(p) {
   document.getElementById('chat-greeting').innerHTML =
     `Hey ${escapeHTML(p.name) || 'there'}, I'm Tyro.<br><br>Whether you need to vent, want motivation, or just have to get something off your chest — I'm here for your ${escapeHTML(p.exam) || 'exam'} journey. What's going on?`;
 }
 
-/** Send a chat message, call Gemini, and display the response. */
+/**
+ * Send a chat message, call Gemini, and display the response.
+ * @returns {Promise<void>}
+ */
 async function sendChat() {
   const inp = document.getElementById('chat-in');
   const msg = inp.value.trim();
@@ -409,13 +495,22 @@ Respond warmly and concisely (under 80 words). Reference their exam when relevan
   }
 }
 
-/** Fill the chat input with a quick-reply message and send it. */
+/**
+ * Fill the chat input with a quick-reply message and send it.
+ * @param {string} msg - The chat message text to send.
+ * @returns {void}
+ */
 function qChat(msg) {
   document.getElementById('chat-in').value = msg;
   sendChat();
 }
 
-/** Append a chat message bubble to the chat scroll area. */
+/**
+ * Append a chat message bubble to the chat scroll area.
+ * @param {string} role - The sender's role ('user' or 'ai').
+ * @param {string} text - The message text content.
+ * @returns {HTMLElement} The created message wrapper element.
+ */
 function addMsg(role, text) {
   const scrollArea = document.getElementById('chat-scroll');
   const div = document.createElement('div');
@@ -435,7 +530,10 @@ function addMsg(role, text) {
   return div;
 }
 
-/** Show a typing indicator in the chat. */
+/**
+ * Show a typing indicator in the chat.
+ * @returns {HTMLElement} The created typing indicator element.
+ */
 function addTyping() {
   const scrollArea = document.getElementById('chat-scroll');
   const div = document.createElement('div');
@@ -453,7 +551,10 @@ function addTyping() {
 // Recharge
 // ──────────────────────────────────────────
 
-/** Fetch a personalized motivational message from Gemini. */
+/**
+ * Fetch a personalized motivational message from Gemini.
+ * @returns {Promise<void>}
+ */
 async function getInspiration() {
   const btn = document.getElementById('inspire-btn');
   btn.textContent = 'Generating...';
@@ -479,7 +580,10 @@ async function getInspiration() {
   btn.disabled = false;
 }
 
-/** Fetch a light-hearted joke from Gemini. */
+/**
+ * Fetch a light-hearted joke from Gemini.
+ * @returns {Promise<void>}
+ */
 async function getJoke() {
   const btn = document.getElementById('joke-btn');
   btn.textContent = 'Loading...';
@@ -505,7 +609,10 @@ async function getJoke() {
 // Breathing Exercise
 // ──────────────────────────────────────────
 
-/** Start the animated 4-7-8 breathing exercise modal. */
+/**
+ * Start the animated 4-7-8 breathing exercise modal.
+ * @returns {void}
+ */
 function startBreathing() {
   document.getElementById('breath-modal').classList.remove('hidden');
 
@@ -536,7 +643,10 @@ function startBreathing() {
   }, 1000);
 }
 
-/** Stop the breathing exercise and close the modal. */
+/**
+ * Stop the breathing exercise and close the modal.
+ * @returns {void}
+ */
 function stopBreathing() {
   document.getElementById('breath-modal').classList.add('hidden');
   if (breathTimer) {
@@ -549,18 +659,27 @@ function stopBreathing() {
 // Emergency / SOS
 // ──────────────────────────────────────────
 
-/** Open the SOS modal with crisis helplines and trusted contacts. */
+/**
+ * Open the SOS modal with crisis helplines and trusted contacts.
+ * @returns {void}
+ */
 function openSOS() {
   renderContacts();
   document.getElementById('sos-modal').classList.remove('hidden');
 }
 
-/** Close the SOS modal. */
+/**
+ * Close the SOS modal.
+ * @returns {void}
+ */
 function closeSOS() {
   document.getElementById('sos-modal').classList.add('hidden');
 }
 
-/** Render saved trusted contacts inside the SOS modal. */
+/**
+ * Render saved trusted contacts inside the SOS modal.
+ * @returns {void}
+ */
 function renderContacts() {
   const list = getContacts();
   const el = document.getElementById('contacts-list');
@@ -578,7 +697,10 @@ function renderContacts() {
   </div>`).join('');
 }
 
-/** Add a new trusted contact after validating name and phone. */
+/**
+ * Add a new trusted contact after validating name and phone.
+ * @returns {void}
+ */
 function addContact() {
   const name = document.getElementById('contact-name').value.trim();
   const phone = document.getElementById('contact-phone').value.trim();
@@ -595,7 +717,11 @@ function addContact() {
   renderContacts();
 }
 
-/** Delete a trusted contact by index. */
+/**
+ * Delete a trusted contact by index.
+ * @param {number} i - The index of the contact to delete.
+ * @returns {void}
+ */
 function delContact(i) {
   const list = getContacts();
   list.splice(i, 1);
@@ -636,7 +762,10 @@ async function callGemini(prompt) {
   return data.candidates[0].content.parts[0].text;
 }
 
-/** Save the API key from the modal input to localStorage. */
+/**
+ * Save the API key from the modal input to localStorage.
+ * @returns {void}
+ */
 function saveKey() {
   const key = document.getElementById('api-in').value.trim();
   if (!key) return alert('Please enter a key');
@@ -649,7 +778,10 @@ function saveKey() {
 // Data Management
 // ──────────────────────────────────────────
 
-/** Confirm and execute a full data reset, clearing all localStorage keys. */
+/**
+ * Confirm and execute a full data reset, clearing all localStorage keys.
+ * @returns {void}
+ */
 function confirmReset() {
   if (confirm('Reset all Tyro data? This cannot be undone.')) {
     ['mindmate_profile', 'mindmate_entries', 'mindmate_api_key', 'mindmate_contacts']
@@ -662,7 +794,10 @@ function confirmReset() {
 // Demo Data
 // ──────────────────────────────────────────
 
-/** Load a 7-day demo dataset for showcasing the app. */
+/**
+ * Load a 7-day demo dataset for showcasing the app.
+ * @returns {void}
+ */
 function loadDemo() {
   const daysAgoISO = offset => new Date(Date.now() - offset * 86400000).toISOString();
 
@@ -684,7 +819,10 @@ function loadDemo() {
 // Accessibility
 // ──────────────────────────────────────────
 
-/** Make clickable elements keyboard-operable and ensure inputs are labelled. */
+/**
+ * Make clickable elements keyboard-operable and ensure inputs are labelled.
+ * @returns {void}
+ */
 function initA11y() {
   const clickSelectors = '.nav-link,.mnav-item,.chip,.mood-opt,.feel-opt,.exam-chip,.sound-card,.sos-btn,.sos-pill,.hero-orb,.reset-link';
 

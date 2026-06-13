@@ -76,6 +76,12 @@ assertEq(escapeHTML('<b>"Bold" & \'italic\'</b>'),
   '&lt;b&gt;&quot;Bold&quot; &amp; &#39;italic&#39;&lt;/b&gt;',
   'escapes all special characters in mixed input');
 
+assertEq(escapeHTML(true), 'true', 'coerces boolean true to string');
+assertEq(escapeHTML(false), 'false', 'coerces boolean false to string');
+assertEq(escapeHTML({}), '[object Object]', 'coerces empty object and escapes safely');
+assertEq(escapeHTML('a & b & c < d > e'), 'a &amp; b &amp; c &lt; d &gt; e', 'escapes multiple occurrences of special chars');
+assertEq(escapeHTML('`hello`'), '`hello`', 'ignores backticks');
+
 // ────────────────────────────────────────────
 console.log('\n═══ isValidPhone ═══');
 // ────────────────────────────────────────────
@@ -90,6 +96,12 @@ assert(isValidPhone('123') === false, 'rejects 3-digit string');
 assert(isValidPhone('+91 123 456 7890') === true, 'valid with plus, spaces');
 assert(isValidPhone('1860-2662-2345') === true, 'valid with dashes');
 assert(isValidPhone('12345 67890') === true, 'valid with space separator');
+
+assert(isValidPhone(9152987821) === true, 'valid number type input');
+assert(isValidPhone('+91 98765@43210') === false, 'rejects invalid symbol @ in middle');
+assert(isValidPhone('+91+9876543210') === false, 'rejects multiple plus signs');
+assert(isValidPhone('+123') === false, 'rejects too-short number with plus');
+assert(isValidPhone('+91 12345 67890 12345') === true, 'valid long international number');
 
 // ────────────────────────────────────────────
 console.log('\n═══ computeStreak ═══');
@@ -140,6 +152,27 @@ assertEq(
   'single old entry (30 days ago) returns 0'
 );
 
+assertEq(
+  computeStreak([daysAgo(0), daysAgo(2), daysAgo(1)]),
+  3,
+  'unordered days still computes correct streak'
+);
+assertEq(
+  computeStreak([daysAgo(-1), daysAgo(0), daysAgo(1)]),
+  0,
+  'clock skew (future date) breaks/invalidates streak'
+);
+assertEq(
+  computeStreak([daysAgo(0), daysAgo(1), daysAgo(3), daysAgo(4), daysAgo(6)]),
+  2,
+  'multiple gaps - returns the length of the most recent active streak'
+);
+assertEq(
+  computeStreak(['2026-06-13T23:59:59Z', '2026-06-14T00:00:01Z']),
+  2,
+  'handles consecutive days crossing timezone/midnight boundaries'
+);
+
 // ────────────────────────────────────────────
 console.log('\n═══ averageMood ═══');
 // ────────────────────────────────────────────
@@ -187,6 +220,17 @@ assertEq(
   averageMood([{mood:1}, {mood:2}, {mood:4}]),
   2.3,
   'average of 1,2,4 returns 2.3 (rounded to 1 decimal)'
+);
+
+assertEq(
+  averageMood([{mood:3}, {mood:null}, {mood:undefined}, {}, {mood:5}]),
+  4.0,
+  'ignores entries missing mood or with non-numeric mood values'
+);
+assertEq(
+  averageMood([{mood:'5'}, {mood:2}]),
+  2.0,
+  'filters out mood string values'
 );
 
 // ────────────────────────────────────────────
@@ -279,6 +323,42 @@ assertEq(
   ];
   const result = detectPattern(entries);
   assertEq(result, null, 'only considers last 5 entries — old distress is ignored');
+}
+
+// Priority testing: numb vs low mood
+{
+  const entries = [
+    {mood: 1, stress: 3, feeling: 'numb'},
+    {mood: 1, stress: 3, feeling: 'numb'},
+    {mood: 1, stress: 3, feeling: 'focused'},
+  ];
+  const result = detectPattern(entries);
+  assert(result !== null && result.toLowerCase().includes('blank or numb'),
+    'numb pattern takes priority over low mood');
+}
+
+// Priority testing: low mood vs high stress
+{
+  const entries = [
+    {mood: 1, stress: 4, feeling: 'focused'},
+    {mood: 1, stress: 4, feeling: 'focused'},
+    {mood: 1, stress: 4, feeling: 'focused'},
+    {mood: 3, stress: 4, feeling: 'focused'},
+  ];
+  const result = detectPattern(entries);
+  assert(result !== null && result.toLowerCase().includes('low mood'),
+    'low mood pattern takes priority over high stress');
+}
+
+// Graceful handling of missing fields in pattern detection
+{
+  const entries = [
+    {mood: 1},
+    {stress: 4},
+    {feeling: 'racing'}
+  ];
+  const result = detectPattern(entries);
+  assertEq(result, null, 'returns null gracefully when entries are missing vital fields');
 }
 
 // ────────────────────────────────────────────
