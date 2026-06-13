@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MindMate – Mental Wellness Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6C63FF',
+            secondary: '#48BB78',
+            calm: '#EBF8FF',
+            warm: '#FFFAF0',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    .chat-bubble-ai { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .mood-btn.selected { transform: scale(1.3); filter: drop-shadow(0 0 8px rgba(108,99,255,0.6)); }
+    .tab-active { border-bottom: 3px solid #6C63FF; color: #6C63FF; font-weight: 600; }
+    .card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .typing-dot { animation: blink 1.4s infinite both; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+    #chat-messages { scroll-behavior: smooth; }
+    .stress-low { color: #48BB78; }
+    .stress-med { color: #ECC94B; }
+    .stress-high { color: #FC8181; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #6C63FF; border-radius: 10px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Header -->
+<header class="gradient-bg text-white py-4 px-6 shadow-lg sticky top-0 z-50">
+  <div class="max-w-4xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="text-2xl">🧠</div>
+      <div>
+        <h1 class="text-xl font-bold">MindMate</h1>
+        <p class="text-xs text-purple-200">Your AI Wellness Companion</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="streak-badge" class="bg-white bg-opacity-20 rounded-full px-3 py-1 text-sm font-medium hidden">
+        🔥 <span id="streak-count">0</span> day streak
+      </div>
+      <div class="text-sm text-purple-200" id="current-date"></div>
+    </div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="max-w-4xl mx-auto px-4 mt-4">
+  <div class="flex border-b border-gray-200 bg-white rounded-t-xl overflow-hidden card mb-0" style="border-radius:16px 16px 0 0; box-shadow:none; border-bottom: 1px solid #e5e7eb;">
+    <button onclick="switchTab('checkin')" id="tab-checkin" class="tab-active flex-1 py-3 text-sm transition-all">
+      📝 Check-in
+    </button>
+    <button onclick="switchTab('chat')" id="tab-chat" class="flex-1 py-3 text-sm text-gray-500 transition-all">
+      💬 AI Companion
+    </button>
+    <button onclick="switchTab('insights')" id="tab-insights" class="flex-1 py-3 text-sm text-gray-500 transition-all">
+      📊 Insights
+    </button>
+    <button onclick="switchTab('mindfulness')" id="tab-mindfulness" class="flex-1 py-3 text-sm text-gray-500 transition-all">
+      🧘 Mindfulness
+    </button>
+  </div>
+
+  <!-- CHECK-IN TAB -->
+  <div id="tab-content-checkin" class="card p-6" style="border-radius:0 0 16px 16px;">
+    <h2 class="text-lg font-semibold text-gray-800 mb-1">How are you feeling today?</h2>
+    <p class="text-sm text-gray-500 mb-5">Track your mood and journal your thoughts</p>
+
+    <!-- Mood Selection -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-3">Select your mood</label>
+      <div class="flex justify-around">
+        <button class="mood-btn flex flex-col items-center gap-1 p-2 rounded-xl transition-all hover:bg-purple-50" onclick="selectMood(1, this)">
+          <span class="text-3xl">😰</span><span class="text-xs text-gray-500">Overwhelmed</span>
+        </button>
+        <button class="mood-btn flex flex-col items-center gap-1 p-2 rounded-xl transition-all hover:bg-purple-50" onclick="selectMood(2, this)">
+          <span class="text-3xl">😔</span><span class="text-xs text-gray-500">Anxious</span>
+        </button>
+        <button class="mood-btn flex flex-col items-center gap-1 p-2 rounded-xl transition-all hover:bg-purple-50" onclick="selectMood(3, this)">
+          <span class="text-3xl">😐</span><span class="text-xs text-gray-500">Neutral</span>
+        </button>
+        <button class="mood-btn flex flex-col items-center gap-1 p-2 rounded-xl transition-all hover:bg-purple-50" onclick="selectMood(4, this)">
+          <span class="text-3xl">🙂</span><span class="text-xs text-gray-500">Calm</span>
+        </button>
+        <button class="mood-btn flex flex-col items-center gap-1 p-2 rounded-xl transition-all hover:bg-purple-50" onclick="selectMood(5, this)">
+          <span class="text-3xl">😊</span><span class="text-xs text-gray-500">Confident</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stress Level -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Stress Level: <span id="stress-value" class="font-bold text-primary">5</span>/10
+      </label>
+      <input type="range" min="1" max="10" value="5" id="stress-slider"
+        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+        oninput="document.getElementById('stress-value').textContent=this.value">
+      <div class="flex justify-between text-xs text-gray-400 mt-1">
+        <span>Relaxed</span><span>Moderate</span><span>Extreme</span>
+      </div>
+    </div>
+
+    <!-- Exam Context -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Preparing for</label>
+      <div class="flex flex-wrap gap-2">
+        <button class="exam-tag px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-all" onclick="toggleExam(this, 'NEET')">NEET</button>
+        <button class="exam-tag px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-all" onclick="toggleExam(this, 'JEE')">JEE</button>
+        <button class="exam-tag px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-all" onclick="toggleExam(this, 'CUET')">CUET</button>
+        <button class="exam-tag px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-all" onclick="toggleExam(this, 'CAT')">CAT</button>
+        <button class="exam-tag px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-all" onclick="toggleExam(this, 'GATE')">GATE</button>
+        <button class="exam-tag px-3 py-1 rounded-full text-sm border border-gray-300 text-gray-600 hover:border-primary hover:text-primary transition-all" onclick="toggleExam(this, 'UPSC')">UPSC</button>
+      </div>
+    </div>
+
+    <!-- Journal -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Journal your thoughts</label>
+      <textarea id="journal-text" rows="4" placeholder="What's on your mind? How was your study session today? Any challenges or wins?"
+        class="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"></textarea>
+    </div>
+
+    <!-- Submit -->
+    <button onclick="submitCheckin()" id="checkin-btn"
+      class="w-full gradient-bg text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
+      <span>✨ Analyze & Get Support</span>
+    </button>
+
+    <!-- AI Response Box -->
+    <div id="ai-response-box" class="hidden mt-5 p-4 bg-purple-50 rounded-xl border border-purple-100">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-lg">🤖</span>
+        <span class="font-semibold text-sm text-primary">MindMate says</span>
+      </div>
+      <p id="ai-response-text" class="text-sm text-gray-700 leading-relaxed"></p>
+    </div>
+  </div>
+
+  <!-- CHAT TAB -->
+  <div id="tab-content-chat" class="hidden card" style="border-radius:0 0 16px 16px; height: 520px; display:none; flex-direction:column;">
+    <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3" style="height:420px; overflow-y:auto;">
+      <div class="flex gap-2">
+        <div class="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-sm flex-shrink-0">🧠</div>
+        <div class="chat-bubble-ai text-white rounded-2xl rounded-tl-none px-4 py-3 text-sm max-w-xs leading-relaxed">
+          Hi! I'm MindMate, your wellness companion 🌟<br><br>
+          I'm here to support you through your exam prep journey. Whether you're feeling stressed, burned out, or just need someone to talk to — I'm always here.<br><br>
+          How are you feeling right now?
+        </div>
+      </div>
+    </div>
+    <div class="p-4 border-t border-gray-100">
+      <div class="flex gap-2">
+        <input id="chat-input" type="text" placeholder="Type your message..."
+          class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          onkeydown="if(event.key==='Enter') sendChat()">
+        <button onclick="sendChat()" class="gradient-bg text-white px-4 py-2 rounded-xl text-sm font-medium hover:opacity-90 transition-all">
+          Send
+        </button>
+      </div>
+      <div class="flex gap-2 mt-2 flex-wrap">
+        <button onclick="quickChat('I\'m feeling very stressed about my exam')" class="text-xs bg-purple-50 text-primary px-3 py-1 rounded-full hover:bg-purple-100 transition-all">😰 Stressed</button>
+        <button onclick="quickChat('I can\'t focus while studying')" class="text-xs bg-purple-50 text-primary px-3 py-1 rounded-full hover:bg-purple-100 transition-all">😵 Can't focus</button>
+        <button onclick="quickChat('I need a motivational boost')" class="text-xs bg-purple-50 text-primary px-3 py-1 rounded-full hover:bg-purple-100 transition-all">💪 Motivate me</button>
+        <button onclick="quickChat('I\'m feeling burned out')" class="text-xs bg-purple-50 text-primary px-3 py-1 rounded-full hover:bg-purple-100 transition-all">🔥 Burned out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSIGHTS TAB -->
+  <div id="tab-content-insights" class="hidden card p-6" style="border-radius:0 0 16px 16px;">
+    <h2 class="text-lg font-semibold text-gray-800 mb-1">Your Wellness Insights</h2>
+    <p class="text-sm text-gray-500 mb-5">Patterns and trends from your check-ins</p>
+    <div id="insights-content">
+      <div class="text-center py-12 text-gray-400">
+        <div class="text-4xl mb-3">📊</div>
+        <p class="text-sm">Complete at least one check-in to see insights</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MINDFULNESS TAB -->
+  <div id="tab-content-mindfulness" class="hidden card p-6" style="border-radius:0 0 16px 16px;">
+    <h2 class="text-lg font-semibold text-gray-800 mb-1">Mindfulness Exercises</h2>
+    <p class="text-sm text-gray-500 mb-5">Quick techniques for stress relief during study breaks</p>
+    <div class="grid grid-cols-1 gap-4">
+      <div class="bg-blue-50 rounded-xl p-4 cursor-pointer hover:bg-blue-100 transition-all" onclick="startExercise('breathing')">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">🫁</span>
+          <div>
+            <h3 class="font-semibold text-gray-800">4-7-8 Breathing</h3>
+            <p class="text-xs text-gray-500">Calm anxiety in 2 minutes • Best before exams</p>
+          </div>
+          <span class="ml-auto text-primary text-sm font-medium">Start →</span>
+        </div>
+      </div>
+      <div class="bg-green-50 rounded-xl p-4 cursor-pointer hover:bg-green-100 transition-all" onclick="startExercise('grounding')">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">🌱</span>
+          <div>
+            <h3 class="font-semibold text-gray-800">5-4-3-2-1 Grounding</h3>
+            <p class="text-xs text-gray-500">Break panic spiral • 3 minutes</p>
+          </div>
+          <span class="ml-auto text-primary text-sm font-medium">Start →</span>
+        </div>
+      </div>
+      <div class="bg-yellow-50 rounded-xl p-4 cursor-pointer hover:bg-yellow-100 transition-all" onclick="startExercise('affirmation')">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">⭐</span>
+          <div>
+            <h3 class="font-semibold text-gray-800">Positive Affirmations</h3>
+            <p class="text-xs text-gray-500">Boost confidence • 1 minute</p>
+          </div>
+          <span class="ml-auto text-primary text-sm font-medium">Start →</span>
+        </div>
+      </div>
+      <div class="bg-purple-50 rounded-xl p-4 cursor-pointer hover:bg-purple-100 transition-all" onclick="startExercise('pomodoro')">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">⏱️</span>
+          <div>
+            <h3 class="font-semibold text-gray-800">Pomodoro Break</h3>
+            <p class="text-xs text-gray-500">5-min guided rest after study session</p>
+          </div>
+          <span class="ml-auto text-primary text-sm font-medium">Start →</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exercise Modal -->
+    <div id="exercise-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
+        <div id="exercise-content"></div>
+        <button onclick="closeExercise()" class="mt-4 text-sm text-gray-400 hover:text-gray-600">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- API Key Modal -->
+<div id="api-key-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
+    <div class="text-2xl mb-2">🔑</div>
+    <h3 class="text-lg font-bold text-gray-800 mb-1">Enter Gemini API Key</h3>
+    <p class="text-xs text-gray-500 mb-4">Get a free key at <strong>aistudio.google.com</strong>. It's stored only in your browser.</p>
+    <input id="api-key-input" type="text" placeholder="Paste your Gemini API key..."
+      class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary mb-3">
+    <button onclick="saveApiKey()" class="w-full gradient-bg text-white py-2 rounded-xl text-sm font-semibold hover:opacity-90">Save & Continue</button>
+  </div>
+</div>
+
+<div class="max-w-4xl mx-auto px-4 py-4 text-center text-xs text-gray-400">
+  MindMate is an AI companion, not a substitute for professional mental health care. If you're in crisis, please reach out to iCall: 9152987821
+</div>
+
+<script>
+let GEMINI_API_KEY = localStorage.getItem('mindmate_api_key') || '';
+const getGeminiURL = () => `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+let selectedMood = null;
+let selectedExams = [];
+let chatHistory = [];
+
+function showApiKeyModal() { document.getElementById('api-key-modal').classList.remove('hidden'); }
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) return alert('Please enter a valid API key');
+  GEMINI_API_KEY = key;
+  localStorage.setItem('mindmate_api_key', key);
+  document.getElementById('api-key-modal').classList.add('hidden');
+}
+
+// Init
+if (!GEMINI_API_KEY) showApiKeyModal();
+document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short'});
+updateStreak();
+loadInsights();
+
+function switchTab(tab) {
+  ['checkin','chat','insights','mindfulness'].forEach(t => {
+    document.getElementById(`tab-content-${t}`).style.display = 'none';
+    document.getElementById(`tab-${t}`).classList.remove('tab-active');
+    document.getElementById(`tab-${t}`).classList.add('text-gray-500');
+  });
+  const el = document.getElementById(`tab-content-${tab}`);
+  el.style.display = tab === 'chat' ? 'flex' : 'block';
+  el.classList.remove('hidden');
+  document.getElementById(`tab-${tab}`).classList.add('tab-active');
+  document.getElementById(`tab-${tab}`).classList.remove('text-gray-500');
+}
+
+function selectMood(val, btn) {
+  selectedMood = val;
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function toggleExam(btn, exam) {
+  if (selectedExams.includes(exam)) {
+    selectedExams = selectedExams.filter(e => e !== exam);
+    btn.classList.remove('border-primary', 'text-primary', 'bg-purple-50');
+  } else {
+    selectedExams.push(exam);
+    btn.classList.add('border-primary', 'text-primary', 'bg-purple-50');
+  }
+}
+
+async function submitCheckin() {
+  if (!selectedMood) return alert('Please select your mood first!');
+  const journal = document.getElementById('journal-text').value.trim();
+  const stress = document.getElementById('stress-slider').value;
+
+  const btn = document.getElementById('checkin-btn');
+  btn.innerHTML = '<span class="typing-dot">●</span><span class="typing-dot">●</span><span class="typing-dot">●</span> Analyzing...';
+  btn.disabled = true;
+
+  const entry = { date: new Date().toISOString(), mood: selectedMood, stress: parseInt(stress), journal, exams: selectedExams };
+  saveEntry(entry);
+
+  const moodLabels = ['','Overwhelmed','Anxious','Neutral','Calm','Confident'];
+  const prompt = `You are MindMate, an empathetic AI wellness companion for students preparing for competitive exams in India (${selectedExams.join(', ') || 'competitive exams'}).
+
+Student's check-in:
+- Mood: ${moodLabels[selectedMood]} (${selectedMood}/5)
+- Stress level: ${stress}/10
+- Journal: "${journal || 'No journal entry'}"
+
+Provide a warm, personalized response (3-4 sentences max) that:
+1. Acknowledges their current emotional state with empathy
+2. Identifies ONE key stress pattern or concern from their journal
+3. Gives ONE specific, actionable coping strategy suitable for exam prep students
+4. Ends with a brief motivational note
+
+Keep it conversational, warm, and practical. No bullet points. Use 1-2 relevant emojis.`;
+
+  try {
+    const res = await callGemini(prompt);
+    document.getElementById('ai-response-text').textContent = res;
+    document.getElementById('ai-response-box').classList.remove('hidden');
+    updateStreak();
+    loadInsights();
+  } catch(e) {
+    document.getElementById('ai-response-text').textContent = 'Unable to connect to AI. Please check your internet connection and try again.';
+    document.getElementById('ai-response-box').classList.remove('hidden');
+  }
+
+  btn.innerHTML = '✨ Analyze & Get Support';
+  btn.disabled = false;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendChatMessage('user', msg);
+  chatHistory.push({ role: 'user', parts: [{ text: msg }] });
+
+  appendTyping();
+
+  const systemCtx = `You are MindMate, an empathetic AI wellness companion for Indian students preparing for competitive exams like NEET, JEE, CUET, CAT, GATE, UPSC. You provide emotional support, stress management tips, study strategies, and motivational guidance. Be warm, concise, and practical. Use 1-2 emojis. Keep responses under 100 words.`;
+
+  const messages = [
+    { role: 'user', parts: [{ text: systemCtx + '\n\nUser: ' + msg }] }
+  ];
+  if (chatHistory.length > 2) {
+    // include recent context
+    messages[0].parts[0].text = systemCtx + '\n\nConversation so far:\n' +
+      chatHistory.slice(-6).map(m => `${m.role === 'user' ? 'Student' : 'MindMate'}: ${m.parts[0].text}`).join('\n');
+  }
+
+  try {
+    const reply = await callGemini(messages[0].parts[0].text);
+    removeTyping();
+    appendChatMessage('ai', reply);
+    chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+  } catch(e) {
+    removeTyping();
+    appendChatMessage('ai', "I'm having trouble connecting right now. Please try again in a moment. 💙");
+  }
+}
+
+function quickChat(msg) {
+  document.getElementById('chat-input').value = msg;
+  sendChat();
+}
+
+function appendChatMessage(role, text) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'flex gap-2' + (role === 'user' ? ' justify-end' : '');
+
+  if (role === 'ai') {
+    div.innerHTML = `
+      <div class="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-sm flex-shrink-0">🧠</div>
+      <div class="chat-bubble-ai text-white rounded-2xl rounded-tl-none px-4 py-3 text-sm max-w-xs leading-relaxed">${text}</div>`;
+  } else {
+    div.innerHTML = `
+      <div class="bg-gray-100 text-gray-800 rounded-2xl rounded-tr-none px-4 py-3 text-sm max-w-xs leading-relaxed">${text}</div>
+      <div class="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center text-sm flex-shrink-0">👤</div>`;
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendTyping() {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'typing-indicator';
+  div.className = 'flex gap-2';
+  div.innerHTML = `
+    <div class="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-sm flex-shrink-0">🧠</div>
+    <div class="bg-gray-100 rounded-2xl rounded-tl-none px-4 py-3 text-sm flex gap-1 items-center">
+      <span class="typing-dot text-gray-400">●</span><span class="typing-dot text-gray-400">●</span><span class="typing-dot text-gray-400">●</span>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+async function callGemini(prompt) {
+  if (!GEMINI_API_KEY) { showApiKeyModal(); throw new Error('No API key'); }
+  const res = await fetch(getGeminiURL(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.8, maxOutputTokens: 300 } })
+  });
+  if (!res.ok) throw new Error('API error');
+  const data = await res.json();
+  return data.candidates[0].content.parts[0].text;
+}
+
+function saveEntry(entry) {
+  const entries = JSON.parse(localStorage.getItem('mindmate_entries') || '[]');
+  entries.push(entry);
+  localStorage.setItem('mindmate_entries', JSON.stringify(entries));
+}
+
+function updateStreak() {
+  const entries = JSON.parse(localStorage.getItem('mindmate_entries') || '[]');
+  if (entries.length === 0) return;
+
+  const dates = [...new Set(entries.map(e => e.date.split('T')[0]))].sort().reverse();
+  let streak = 1;
+  for (let i = 1; i < dates.length; i++) {
+    const diff = (new Date(dates[i-1]) - new Date(dates[i])) / 86400000;
+    if (diff === 1) streak++;
+    else break;
+  }
+
+  const badge = document.getElementById('streak-badge');
+  document.getElementById('streak-count').textContent = streak;
+  badge.classList.remove('hidden');
+}
+
+function loadInsights() {
+  const entries = JSON.parse(localStorage.getItem('mindmate_entries') || '[]');
+  const container = document.getElementById('insights-content');
+  if (entries.length === 0) return;
+
+  const avgMood = (entries.reduce((s, e) => s + e.mood, 0) / entries.length).toFixed(1);
+  const avgStress = (entries.reduce((s, e) => s + e.stress, 0) / entries.length).toFixed(1);
+  const moodLabels = ['','😰 Overwhelmed','😔 Anxious','😐 Neutral','🙂 Calm','😊 Confident'];
+
+  const last7 = entries.slice(-7);
+  const moodBars = last7.map(e => {
+    const pct = (e.mood / 5) * 100;
+    const colors = ['','bg-red-400','bg-orange-400','bg-yellow-400','bg-blue-400','bg-green-400'];
+    return `<div class="flex flex-col items-center gap-1">
+      <div class="w-8 bg-gray-100 rounded-full" style="height:60px; display:flex; align-items:flex-end;">
+        <div class="${colors[e.mood]} rounded-full w-full transition-all" style="height:${pct}%"></div>
+      </div>
+      <span class="text-xs text-gray-400">${new Date(e.date).toLocaleDateString('en-IN',{weekday:'short'})}</span>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="bg-purple-50 rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-primary">${avgMood}</div>
+        <div class="text-xs text-gray-500 mt-1">Avg Mood Score</div>
+        <div class="text-sm mt-1">${moodLabels[Math.round(avgMood)]}</div>
+      </div>
+      <div class="bg-red-50 rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-red-500">${avgStress}</div>
+        <div class="text-xs text-gray-500 mt-1">Avg Stress Level</div>
+        <div class="text-sm mt-1">${avgStress > 7 ? '⚠️ High' : avgStress > 4 ? '⚡ Moderate' : '✅ Low'}</div>
+      </div>
+    </div>
+    <div class="mb-6">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">Mood Trend (Last 7 days)</h3>
+      <div class="flex justify-around items-end">${moodBars || '<p class="text-sm text-gray-400">Not enough data</p>'}</div>
+    </div>
+    <div class="bg-gray-50 rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-2">📋 Total Check-ins</h3>
+      <p class="text-2xl font-bold text-primary">${entries.length}</p>
+      <p class="text-xs text-gray-400 mt-1">Keep journaling for better AI pattern analysis</p>
+    </div>
+  `;
+}
+
+const exercises = {
+  breathing: {
+    title: '🫁 4-7-8 Breathing',
+    steps: ['Inhale for 4 counts', 'Hold for 7 counts', 'Exhale for 8 counts'],
+    duration: 4
+  },
+  grounding: {
+    title: '🌱 5-4-3-2-1 Grounding',
+    steps: ['Name 5 things you can SEE', 'Name 4 things you can TOUCH', 'Name 3 things you can HEAR', 'Name 2 things you can SMELL', 'Name 1 thing you can TASTE'],
+    duration: 0
+  },
+  affirmation: {
+    title: '⭐ Affirmations',
+    steps: ['I am capable of handling this', 'Every small step counts', 'I have prepared well', 'I trust myself', 'I am resilient and strong'],
+    duration: 0
+  },
+  pomodoro: {
+    title: '⏱️ 5-Minute Break',
+    steps: ['Close your eyes and take 3 deep breaths', 'Stand up and stretch your arms', 'Look at something 20 feet away for 20 seconds', 'Drink a glass of water', 'Write one thing you\'re proud of today'],
+    duration: 0
+  }
+};
+
+let breathTimer = null;
+
+function startExercise(type) {
+  const ex = exercises[type];
+  const modal = document.getElementById('exercise-modal');
+  const content = document.getElementById('exercise-content');
+
+  if (type === 'breathing') {
+    let count = 0;
+    let phase = 0;
+    const phases = [{label:'Inhale',dur:4},{label:'Hold',dur:7},{label:'Exhale',dur:8}];
+    let remaining = phases[0].dur;
+
+    content.innerHTML = `
+      <h3 class="text-xl font-bold text-gray-800 mb-6">${ex.title}</h3>
+      <div class="relative w-32 h-32 mx-auto mb-6">
+        <div id="breath-circle" class="w-32 h-32 rounded-full gradient-bg opacity-70 flex items-center justify-center transition-all duration-1000">
+          <div class="text-white text-center">
+            <div id="breath-phase" class="text-sm font-bold">Inhale</div>
+            <div id="breath-count" class="text-3xl font-bold">4</div>
+          </div>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500">Breathe with the circle</p>`;
+
+    modal.classList.remove('hidden');
+
+    breathTimer = setInterval(() => {
+      remaining--;
+      document.getElementById('breath-count').textContent = remaining;
+      if (remaining <= 0) {
+        phase = (phase + 1) % 3;
+        remaining = phases[phase].dur;
+        document.getElementById('breath-phase').textContent = phases[phase].label;
+        document.getElementById('breath-count').textContent = remaining;
+        const circle = document.getElementById('breath-circle');
+        circle.style.transform = phase === 0 ? 'scale(1.2)' : phase === 1 ? 'scale(1.2)' : 'scale(0.9)';
+      }
+    }, 1000);
+  } else {
+    content.innerHTML = `
+      <h3 class="text-xl font-bold text-gray-800 mb-4">${ex.title}</h3>
+      <div class="space-y-3 text-left">
+        ${ex.steps.map((s, i) => `<div class="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+          <span class="w-6 h-6 rounded-full gradient-bg text-white text-xs flex items-center justify-center flex-shrink-0 font-bold">${i+1}</span>
+          <p class="text-sm text-gray-700">${s}</p>
+        </div>`).join('')}
+      </div>`;
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeExercise() {
+  document.getElementById('exercise-modal').classList.add('hidden');
+  if (breathTimer) { clearInterval(breathTimer); breathTimer = null; }
+}
+</script>
+</body>
+</html>
