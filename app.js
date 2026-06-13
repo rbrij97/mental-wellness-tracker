@@ -1,5 +1,5 @@
 /*
- * app.js — Main application module for Tyro
+ * app.js — Main application module for Tyro (Final Release v1.0.1)
  * ------------------------------------------------------------------
  * Handles UI interactions, navigation, Gemini API calls, and all
  * DOM-related logic. Pure logic helpers live in logic.js.
