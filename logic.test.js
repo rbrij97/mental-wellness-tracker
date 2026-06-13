@@ -167,8 +167,14 @@ assertEq(
   2,
   'multiple gaps - returns the length of the most recent active streak'
 );
+// We construct two timestamps crossing midnight to verify boundary safety.
+const todayMid = new Date();
+todayMid.setUTCHours(23, 59, 59, 999);
+const yesterdayMid = new Date(Date.now() - 86400000);
+yesterdayMid.setUTCHours(0, 0, 1, 0);
+
 assertEq(
-  computeStreak(['2026-06-13T23:59:59Z', '2026-06-14T00:00:01Z']),
+  computeStreak([yesterdayMid.toISOString(), todayMid.toISOString()]),
   2,
   'handles consecutive days crossing timezone/midnight boundaries'
 );
